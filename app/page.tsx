@@ -1,9 +1,66 @@
-import Image from "next/image";
+"use client"
+
+import Image from "next/image"
+import { useSession, signOut } from "@/lib/auth-client"
+import Link from "next/link"
 
 export default function Home() {
+  const { data: session, isPending } = useSession()
+
+  const handleSignOut = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          window.location.reload()
+        },
+      },
+    })
+  }
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      {/* Authentication Header */}
+      <div className="absolute top-4 right-4">
+        {session?.user ? (
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-600">
+              Welcome, {session.user.name || session.user.email}!
+            </span>
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/auth/sign-in"
+            className="px-4 py-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+          >
+            Sign In
+          </Link>
+        )}
+      </div>
+
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+        <div className="text-center sm:text-left">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Medicaid Transition
+          </h1>
+          <p className="text-lg text-gray-600 mb-8">
+            Helping you qualify for Medicaid benefits
+          </p>
+        </div>
+
         <Image
           className="dark:invert"
           src="/next.svg"
@@ -12,45 +69,51 @@ export default function Home() {
           height={38}
           priority
         />
+
+        {session?.user ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-green-800 mb-2">
+              You're signed in!
+            </h2>
+            <p className="text-green-700">
+              Email: {session.user.email}
+            </p>
+            {session.user.name && (
+              <p className="text-green-700">
+                Name: {session.user.name}
+              </p>
+            )}
+            <p className="text-sm text-green-600 mt-2">
+              You can now access all Medicaid transition features.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-blue-800 mb-2">
+              Get Started
+            </h2>
+            <p className="text-blue-700 mb-4">
+              Sign in or create an account to access personalized Medicaid guidance.
+            </p>
+            <Link
+              href="/auth/sign-in"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Sign In / Sign Up
+            </Link>
+          </div>
+        )}
+
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
+            {session?.user ? "Explore Medicaid benefits" : "Create an account to get started"}
           </li>
           <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
+            {session?.user ? "Track your application progress" : "Sign in to access personalized features"}
           </li>
         </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
       </main>
+      
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <a
           className="flex items-center gap-2 hover:underline hover:underline-offset-4"
@@ -99,5 +162,5 @@ export default function Home() {
         </a>
       </footer>
     </div>
-  );
+  )
 }
