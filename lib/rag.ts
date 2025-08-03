@@ -1,107 +1,98 @@
+import { Pinecone } from '@pinecone-database/pinecone';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import fs from "fs/promises";
-import path from "path";
-import pdf from "pdf-parse";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const pinecone = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY!,
+});
 
-interface Document {
-  source: string;
+interface SearchResult {
   content: string;
-  embedding: number[];
+  source: string;
+  hierarchy: string;
+  similarity: number;
+  metadata: {
+    filename: string;
+    chunkIndex: number;
+  };
 }
 
-// Simple in-memory vector store
-let vectorStore: Document[] = [];
-let isInitialized = false;
+class PineconeVectorStore {
+  private index = pinecone.index('medicaid-rag');
+  private embedModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
-// Function to chunk text
-function chunkText(text: string, chunkSize = 1000, overlap = 100): string[] {
-  const chunks: string[] = [];
-  for (let i = 0; i < text.length; i += chunkSize - overlap) {
-    chunks.push(text.substring(i, i + chunkSize));
-  }
-  return chunks;
-}
-
-// Function to get embedding for a text chunk
-async function getEmbedding(text: string): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-  const result = await model.embedContent(text);
-  return result.embedding.values;
-}
-
-// Function to calculate cosine similarity
-function cosineSimilarity(vecA: number[], vecB: number[]): number {
-  const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
-  const magnitudeA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
-  const magnitudeB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-  if (magnitudeA === 0 || magnitudeB === 0) {
-    return 0;
-  }
-  return dotProduct / (magnitudeA * magnitudeB);
-}
-
-// Initialize the vector store by loading, chunking, and embedding documents
-export async function initializeRAG() {
-  if (isInitialized) return;
-
-  console.log("Initializing RAG system...");
-  const docsPath = path.join(process.cwd(), "public", "docs");
-  const docHierarchy = ["federal", "california", "sf-local"];
-  let documents: { source: string; content: string }[] = [];
-
-  for (const dir of docHierarchy) {
+  async search(query: string, topK: number = 15): Promise<SearchResult[]> {
     try {
-      const dirPath = path.join(docsPath, dir);
-      const files = await fs.readdir(dirPath);
-      for (const file of files) {
-        if (path.extname(file).toLowerCase() === ".pdf") {
-          const filePath = path.join(dirPath, file);
-          const dataBuffer = await fs.readFile(filePath);
-          const data = await pdf(dataBuffer);
-          documents.push({ source: `${dir}/${file}`, content: data.text });
+      // Generate embedding for the search query
+      const queryResult = await this.embedModel.embedContent(query);
+      const queryEmbedding = queryResult.embedding.values;
+
+      // Search Pinecone vector database
+      const searchResults = await this.index.query({
+        vector: queryEmbedding,
+        topK,
+        includeMetadata: true,
+        includeValues: false
+      });
+
+      // Transform Pinecone results to SearchResult format
+      const results: SearchResult[] = searchResults.matches
+        .filter(match => match.metadata && match.score !== undefined)
+        .map(match => ({
+          content: match.metadata!.content as string,
+          source: match.metadata!.source as string,
+          hierarchy: match.metadata!.hierarchy as string,
+          similarity: match.score!,
+          metadata: {
+            filename: match.metadata!.filename as string,
+            chunkIndex: match.metadata!.chunkIndex as number
+          }
+        }));
+
+      // Sort by hierarchy priority when similarities are close
+      results.sort((a, b) => {
+        const hierarchyPriority: { [key: string]: number } = { 
+          federal: 3, 
+          california: 2, 
+          "sf-local": 1 
+        };
+        
+        const priorityA = hierarchyPriority[a.hierarchy] || 0;
+        const priorityB = hierarchyPriority[b.hierarchy] || 0;
+        const priorityDiff = priorityB - priorityA;
+        
+        // If similarity difference is small (< 0.1), prioritize by hierarchy
+        if (Math.abs(a.similarity - b.similarity) < 0.1) {
+          return priorityDiff;
         }
-      }
+        
+        // Otherwise, sort by similarity score
+        return b.similarity - a.similarity;
+      });
+
+      return results;
     } catch (error) {
-        console.warn(`Could not read documents from ${dir}:`, error);
+      console.error("Error searching Pinecone:", error);
+      throw new Error("Failed to search vector database");
     }
   }
-
-  for (const doc of documents) {
-    const chunks = chunkText(doc.content);
-    for (const chunk of chunks) {
-      try {
-        const embedding = await getEmbedding(chunk);
-        vectorStore.push({
-          source: doc.source,
-          content: chunk,
-          embedding: embedding,
-        });
-      } catch (error) {
-        console.error(`Failed to create embedding for chunk from ${doc.source}:`, error);
-      }
-    }
-  }
-
-  console.log(`RAG system initialized. Vector store contains ${vectorStore.length} chunks.`);
-  isInitialized = true;
 }
 
-// Search the vector store for relevant documents
-export async function searchRAG(query: string, topK = 5): Promise<{ results: Document[] }> {
-  if (!isInitialized) {
-    await initializeRAG();
+// Singleton instance - no initialization needed!
+const vectorStore = new PineconeVectorStore();
+
+/**
+ * Search the RAG knowledge base for relevant content
+ * @param query - The search query string
+ * @returns Promise<SearchResult[]> - Array of relevant document chunks
+ */
+export async function searchRAG(query: string): Promise<{ results: SearchResult[] }> {
+  try {
+    return { results: await vectorStore.search(query, 15) } ;
+  } catch (error) {
+    console.error("Error in RAG search:", error);
+    throw new Error("Failed to perform RAG search");
   }
-
-  const queryEmbedding = await getEmbedding(query);
-
-  const similarities = vectorStore.map(doc => ({
-    ...doc,
-    similarity: cosineSimilarity(queryEmbedding, doc.embedding),
-  }));
-
-  similarities.sort((a, b) => b.similarity - a.similarity);
-
-  return { results: similarities.slice(0, topK) };
 }
+
+export type { SearchResult };

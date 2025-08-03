@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from 'react';
+import { useSession } from '@/lib/auth-client';
+import { useRouter } from 'next/navigation';
 import { FileUploader } from '@/components/chat/file-uploader';
 import { QuestionSelector } from '@/components/chat/question-selector';
 import { ProgressTracker } from '@/components/chat/progress-tracker';
@@ -30,6 +32,13 @@ const mockAnalysisResult: AnalysisResult = {
 const requiredDocIds = ['id_card', 'pay_stub', 'utility_bill', 'immigration_doc'];
 
 export default function ChatPage() {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  if (!session) {
+    router.push('/auth/sign-in');
+  }
+
   const [files, setFiles] = useState<{ [key: string]: File | null }>({});
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -106,6 +115,7 @@ export default function ChatPage() {
       }
 
       const ragResults = await ragResponse.json();
+      console.log("RAG Search Results:", ragResults);
       setCurrentStep(5); // Move to analysis step
 
       // Final Analysis
