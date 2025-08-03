@@ -5,33 +5,47 @@ import { NextRequest, NextResponse } from "next/server";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 // Function to convert a File object to a GoogleGenerativeAI.Part object
-async function fileToGenerativePart(file: File): Promise<Part> {
-  const base64EncodedData = Buffer.from(await file.arrayBuffer()).toString("base64");
-  return {
-    inlineData: {
-      data: base64EncodedData,
-      mimeType: file.type,
-    },
-  };
+async function urlToGenerativePart(url: string, retries = 3, delay = 1000): Promise<Part> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch file from URL: ${url}, status: ${response.status}`);
+      }
+      const file = await response.blob();
+      const base64EncodedData = Buffer.from(await file.arrayBuffer()).toString("base64");
+      return {
+        inlineData: {
+          data: base64EncodedData,
+          mimeType: file.type,
+        },
+      };
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+    }
+  }
+  throw new Error(`Failed to fetch file from URL after ${retries} retries: ${url}`);
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const files = formData.getAll("files") as File[];
-    const question = formData.get("question") as string;
+    const { fileUrls, question } = await req.json();
     console.log("Processing documents with question:", question);
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: "No files uploaded." }, { status: 400 });
+    if (!fileUrls || Object.keys(fileUrls).length === 0) {
+      return NextResponse.json({ error: "No file URLs provided." }, { status: 400 });
     }
     if (!question) {
       return NextResponse.json({ error: "No question selected." }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const imageParts = await Promise.all(files.map(fileToGenerativePart));
+    const imageParts = await Promise.all(
+      Object.values(fileUrls).map(url => urlToGenerativePart(url as string))
+    );
+
 
     const prompt = `
       You are an expert in analyzing documents for determining eligibility for US public benefits like Medicaid and SNAP for the city of San Francisco.

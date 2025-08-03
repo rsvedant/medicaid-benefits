@@ -76,16 +76,33 @@ export default function ChatPage() {
     setError(null);
     setCurrentStep(3); // Start processing
 
-    const formData = new FormData();
-    uploadedFiles.forEach(file => {
-      formData.append("files", file);
-    });
-    formData.append("question", selectedQuestion);
-
     try {
+      const uploadedFileUrls: { [key: string]: string } = {};
+      for (const docId in files) {
+        const file = files[docId];
+        if (file) {
+          const response = await fetch(
+            `/api/upload?filename=${file.name}`,
+            {
+              method: 'POST',
+              body: file,
+            },
+          );
+          const newBlob = await response.json();
+          if (!response.ok) {
+            throw new Error(newBlob.error || 'File upload failed.');
+          }
+          uploadedFileUrls[docId] = newBlob.url;
+        }
+      }
+
       const response = await fetch('/api/process-documents', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileUrls: uploadedFileUrls,
+          question: selectedQuestion
+        }),
       });
 
       if (!response.ok) {
