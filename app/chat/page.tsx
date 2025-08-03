@@ -9,15 +9,6 @@ import { ResultsDisplay, AnalysisResult } from '@/components/chat/results-displa
 import { Button } from '@/components/ui/button';
 
 // Mock data and functions - replace with actual implementation
-const mockExtractedData = {
-  name: "Jane Doe",
-  dob: "1990-01-15",
-  income: "$1,200/month",
-  householdSize: 1,
-  address: "123 Main St, San Francisco, CA 94102",
-  immigrationStatus: "Lawful Permanent Resident",
-};
-
 const mockAnalysisResult: AnalysisResult = {
   determination: "Eligible",
   reasoning: "The applicant's reported monthly income of $1,200 is below the 138% Federal Poverty Level threshold for a household of one ($1,732/month). The applicant is a Lawful Permanent Resident, which meets the immigration status requirements.",
@@ -36,19 +27,23 @@ const mockAnalysisResult: AnalysisResult = {
   missingDocs: ["Pay stubs for the last 30 days", "Utility bill with current address"],
 };
 
+const requiredDocIds = ['id_card', 'pay_stub', 'utility_bill', 'immigration_doc'];
+
 export default function ChatPage() {
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<{ [key: string]: File | null }>({});
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleFileChange = (newFiles: File[]) => {
+  const handleFileChange = (newFiles: { [key: string]: File | null }) => {
     setFiles(newFiles);
-    if (newFiles.length > 0 && currentStep < 2) {
+    const uploadedFiles = Object.values(newFiles).filter(Boolean);
+    if (uploadedFiles.length > 0 && currentStep < 2) {
       setCurrentStep(2);
-    } else if (newFiles.length === 0) {
+    } else if (uploadedFiles.length === 0) {
       setCurrentStep(1);
     }
   };
@@ -58,36 +53,107 @@ export default function ChatPage() {
   };
 
   const handleStartAnalysis = async () => {
-    if (!selectedQuestion || files.length === 0) {
-      // TODO: Show an error message
+    const uploadedFiles = Object.values(files).filter(Boolean) as File[];
+    const allDocsUploaded = requiredDocIds.every(docId => files[docId]);
+
+    if (!allDocsUploaded) {
+      setError("Please upload all required documents.");
       return;
     }
-    setIsLoading(true);
-    setAnalysisResult(null);
     
-    // Simulate processing steps
-    for (let i = 3; i <= 8; i++) {
-      setCurrentStep(i);
-      await new Promise(resolve => setTimeout(resolve, 700));
-      if (i === 3) { // Document Processing
-        setExtractedData(mockExtractedData);
-      }
+    if (!selectedQuestion) {
+      setError("Please select a question.");
+      return;
     }
 
-    setAnalysisResult(mockAnalysisResult);
-    setIsLoading(false);
+    setIsLoading(true);
+    setAnalysisResult(null);
+    setExtractedData(null);
+    setError(null);
+    setCurrentStep(3); // Start processing
+
+    const formData = new FormData();
+    uploadedFiles.forEach(file => {
+      formData.append("files", file);
+    });
+    formData.append("question", selectedQuestion);
+
+    try {
+      const response = await fetch('/api/process-documents', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to process documents.");
+      }
+
+      const data = await response.json();
+      setExtractedData(data);
+      setCurrentStep(4); // Move to next step (RAG search)
+
+      // Perform RAG search
+      const ragQuery = `Eligibility for ${selectedQuestion} based on: ${JSON.stringify(data)}`;
+      const ragResponse = await fetch('/api/rag-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: ragQuery }),
+      });
+
+      if (!ragResponse.ok) {
+        throw new Error("RAG search failed.");
+      }
+
+      const ragResults = await ragResponse.json();
+      setCurrentStep(5); // Move to analysis step
+
+      // Final Analysis
+      const analysisResponse = await fetch('/api/analyze-eligibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          extractedData: data,
+          ragResults: ragResults.results,
+          question: selectedQuestion,
+        }),
+      });
+
+      if (!analysisResponse.ok) {
+        const errorData = await analysisResponse.json();
+        throw new Error(errorData.error || "Eligibility analysis failed.");
+      }
+
+      const finalResult = await analysisResponse.json();
+      
+      setCurrentStep(6); // Data validation
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setCurrentStep(7); // Synthesizing
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setCurrentStep(8); // Finalizing
+
+      setAnalysisResult(finalResult);
+
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred.");
+      setCurrentStep(1); // Reset on error
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleReset = () => {
-    setFiles([]);
+    setFiles({});
     setSelectedQuestion(null);
     setCurrentStep(1);
     setIsLoading(false);
     setExtractedData(null);
     setAnalysisResult(null);
+    setError(null);
   };
 
-  const isAnalysisDisabled = files.length === 0 || !selectedQuestion || isLoading;
+  const allDocsUploaded = requiredDocIds.every(docId => files[docId]);
+  const isAnalysisDisabled = !allDocsUploaded || !selectedQuestion || isLoading;
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -97,16 +163,22 @@ export default function ChatPage() {
           Upload your documents and select a question to analyze your potential eligibility.
         </p>
 
+        {error && (
+          <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-4 text-center">
+            {error}
+          </div>
+        )}
+
         <ProgressTracker currentStep={currentStep} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
           <div className="space-y-8">
-            <FileUploader onFilesChange={handleFileChange} disabled={isLoading} />
+            <FileUploader files={files} onFilesChange={handleFileChange} disabled={isLoading} />
             <QuestionSelector onQuestionSelect={handleQuestionSelect} disabled={isLoading} />
           </div>
           <div className="space-y-8">
-            <DocumentProcessor extractedData={extractedData} isProcessing={currentStep >= 3 && isLoading} />
-            <ResultsDisplay result={analysisResult} isLoading={isLoading && currentStep >= 8} />
+            <DocumentProcessor extractedData={extractedData} isProcessing={currentStep === 3 && isLoading} />
+            <ResultsDisplay result={analysisResult} isLoading={isLoading && currentStep > 3} />
           </div>
         </div>
 

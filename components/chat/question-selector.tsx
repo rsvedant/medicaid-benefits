@@ -9,9 +9,18 @@ interface QuestionSelectorProps {
 }
 
 const questions = [
-  "Do I qualify for Medicaid?",
-  "Do I qualify for SNAP?",
-  "Do I qualify for both?",
+  {
+    display: "Do I qualify for Medicaid?",
+    prompt: "Do I qualify for Medicaid based on the information provided and in compliance with The Big Beautiful Bill? Background: I live in the city of San Francisco."
+  },
+  {
+    display: "Do I qualify for SNAP?",
+    prompt: "Do I qualify for SNAP based on the information provided and in compliance with The Big Beautiful Bill? Background: I live in the city of San Francisco."
+  },
+  {
+    display: "Do I qualify for both?",
+    prompt: "Do I qualify for Medicaid and SNAP based on the information provided and in compliance with The Big Beautiful Bill? Background: I live in the city of San Francisco."
+  },
 ];
 
 export function QuestionSelector({ onQuestionSelect, disabled }: QuestionSelectorProps) {
@@ -23,12 +32,12 @@ export function QuestionSelector({ onQuestionSelect, disabled }: QuestionSelecto
       <CardContent className="flex flex-col space-y-2">
         {questions.map((question) => (
           <Button
-            key={question}
+            key={question.prompt}
             variant="outline"
-            onClick={() => onQuestionSelect(question)}
+            onClick={() => onQuestionSelect(question.prompt)}
             disabled={disabled}
           >
-            {question}
+            {question.display}
           </Button>
         ))}
       </CardContent>
