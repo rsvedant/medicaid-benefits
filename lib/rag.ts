@@ -89,7 +89,7 @@ export async function initializeRAG() {
 }
 
 // Search the vector store for relevant documents
-export async function searchRAG(query: string, topK = 5): Promise<Document[]> {
+export async function searchRAG(query: string, topK = 5): Promise<{ results: Document[] }> {
   if (!isInitialized) {
     await initializeRAG();
   }
@@ -103,5 +103,5 @@ export async function searchRAG(query: string, topK = 5): Promise<Document[]> {
 
   similarities.sort((a, b) => b.similarity - a.similarity);
 
-  return similarities.slice(0, topK);
+  return { results: similarities.slice(0, topK) };
 }
