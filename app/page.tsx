@@ -55,26 +55,10 @@ const App = () => {
         transition={{ type: 'spring', stiffness: 50 }}
         className="fixed top-0 z-50 w-full bg-white/70 backdrop-blur-lg shadow-sm"
       >
-        <nav className="container mx-auto flex items-center justify-between p-4">
+        <nav className="container mx-auto flex items-center justify-center p-4">
           <motion.a href="#" className="flex items-center space-x-2" variants={item}>
-            <span className="font-bold text-xl text-black">Benefits Check</span>
+        <span className="font-bold text-xl text-black">Benefits Check</span>
           </motion.a>
-          <motion.div className="flex items-center space-x-4" variants={container} initial="hidden" animate="show">
-            <motion.a
-              href="/auth/sign-in"
-              className="text-sm font-medium text-black border border-black rounded-md px-4 py-2 transition-colors hover:bg-gray-200"
-              variants={item}
-            >
-              Login
-            </motion.a>
-            <motion.a
-              href="/auth/sign-up"
-              className="text-sm font-medium bg-black text-white rounded-md px-4 py-2 transition-colors hover:bg-gray-800"
-              variants={item}
-            >
-              Sign Up
-            </motion.a>
-          </motion.div>
         </nav>
       </motion.header>
 
@@ -94,7 +78,7 @@ const App = () => {
           </motion.p>
           <motion.div className="mt-8 flex justify-center space-x-4" variants={item}>
             <button
-              onClick={() => router.push('/chat')}
+              onClick={() => router.push('/auth/sign-in')}
               className="inline-flex items-center justify-center rounded-md bg-black px-8 py-3 text-base font-medium text-white shadow-lg transition-transform transform hover:scale-105 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
             >
               Check My Eligibility
@@ -200,7 +184,7 @@ const App = () => {
           </motion.p>
           <motion.div className="mt-8 flex justify-center" variants={item}>
             <button
-              onClick={() => router.push('/chat')}
+              onClick={() => router.push('/auth/sign-in')}
               className="inline-flex items-center justify-center rounded-md bg-white px-8 py-3 text-base font-medium text-black shadow-lg transition-transform transform hover:scale-105 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
             >
               Begin My Eligibility Check
