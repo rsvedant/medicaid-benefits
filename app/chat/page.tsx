@@ -9,6 +9,7 @@ import { ProgressTracker } from '@/components/chat/progress-tracker';
 import { DocumentProcessor } from '@/components/chat/document-processor';
 import { ResultsDisplay, AnalysisResult } from '@/components/chat/results-display';
 import { Button } from '@/components/ui/button';
+import { RedirectToSignIn, SignedIn } from "@daveyplate/better-auth-ui";
 
 // Mock data and functions - replace with actual implementation
 const mockAnalysisResult: AnalysisResult = {
@@ -32,12 +33,6 @@ const mockAnalysisResult: AnalysisResult = {
 const requiredDocIds = ['id_card', 'pay_stub', 'utility_bill', 'immigration_doc'];
 
 export default function ChatPage() {
-  const { data: session } = useSession();
-  const router = useRouter();
-
-  if (!session) {
-    router.push('/auth/sign-in');
-  }
 
   const [files, setFiles] = useState<{ [key: string]: File | null }>({});
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
@@ -166,41 +161,47 @@ export default function ChatPage() {
   const isAnalysisDisabled = !allDocsUploaded || !selectedQuestion || isLoading;
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-2">Medicaid & SNAP Eligibility Analyzer</h1>
-        <p className="text-center text-muted-foreground mb-8">
-          Upload your documents and select a question to analyze your potential eligibility.
-        </p>
+    <div>
+      <RedirectToSignIn />
 
-        {error && (
-          <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-4 text-center">
-            {error}
-          </div>
-        )}
+      <SignedIn>
+        <div className="container mx-auto p-4 md:p-8">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold text-center mb-2">Medicaid & SNAP Eligibility Analyzer</h1>
+            <p className="text-center text-muted-foreground mb-8">
+              Upload your documents and select a question to analyze your potential eligibility.
+            </p>
 
-        <ProgressTracker currentStep={currentStep} />
+            {error && (
+              <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-4 text-center">
+                {error}
+              </div>
+            )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-          <div className="space-y-8">
-            <FileUploader files={files} onFilesChange={handleFileChange} disabled={isLoading} />
-            <QuestionSelector onQuestionSelect={handleQuestionSelect} disabled={isLoading} />
-          </div>
-          <div className="space-y-8">
-            <DocumentProcessor extractedData={extractedData} isProcessing={currentStep === 3 && isLoading} />
-            <ResultsDisplay result={analysisResult} isLoading={isLoading && currentStep > 3} />
+            <ProgressTracker currentStep={currentStep} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+              <div className="space-y-8">
+                <FileUploader files={files} onFilesChange={handleFileChange} disabled={isLoading} />
+                <QuestionSelector onQuestionSelect={handleQuestionSelect} disabled={isLoading} />
+              </div>
+              <div className="space-y-8">
+                <DocumentProcessor extractedData={extractedData} isProcessing={currentStep === 3 && isLoading} />
+                <ResultsDisplay result={analysisResult} isLoading={isLoading && currentStep > 3} />
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-center gap-4">
+              <Button onClick={handleStartAnalysis} disabled={isAnalysisDisabled} size="lg">
+                {isLoading ? 'Analyzing...' : 'Start Analysis'}
+              </Button>
+              <Button onClick={handleReset} variant="outline" size="lg" disabled={isLoading}>
+                Reset
+              </Button>
+            </div>
           </div>
         </div>
-
-        <div className="mt-8 flex justify-center gap-4">
-          <Button onClick={handleStartAnalysis} disabled={isAnalysisDisabled} size="lg">
-            {isLoading ? 'Analyzing...' : 'Start Analysis'}
-          </Button>
-          <Button onClick={handleReset} variant="outline" size="lg" disabled={isLoading}>
-            Reset
-          </Button>
-        </div>
-      </div>
+      </SignedIn>
     </div>
   );
 }
