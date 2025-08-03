@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Medicaid Transition",
-  description: "Helping you qualify for Medicaid",
+  title: "SF Benefits Check",
+  description: "Helping you qualify for Medicaid and SNAP benefits in San Francisco",
 }
 
 export default function RootLayout({
