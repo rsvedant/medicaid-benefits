@@ -3,9 +3,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from "fs";
 import * as path from "path";
 
-const genAI = new GoogleGenerativeAI("AIzaSyDQ0P4QzuN6YB7gA-XneLcyZCGfAe8R1lI");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 const pinecone = new Pinecone({ 
-  apiKey: "pcsk_5ibyHG_BJixnNRUjXMXwETARx6C7TprVkhqxKnpBtjrdbPvEe4q7QTXuvScLZ3ARJnKuoe" 
+  apiKey: process.env.PINECONE_API_KEY!
 });
 
 const INDEX_NAME = 'medicaid-rag';
