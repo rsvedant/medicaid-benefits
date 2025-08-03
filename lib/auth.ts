@@ -4,7 +4,7 @@ import type { BetterAuthOptions } from "better-auth"
 import { prisma } from "./prisma"
 
 const authOptions: BetterAuthOptions = {
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: process.env.BETTER_AUTH_URL!,
   emailAndPassword: {
     enabled: true,
   }, 
