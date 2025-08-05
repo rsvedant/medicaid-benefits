@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { AgenticSearchDiagram } from '@/components/agentic-search-diagram';
 
 const App = () => {
   const CheckIcon = () => (
@@ -78,7 +79,7 @@ const App = () => {
           </motion.p>
           <motion.div className="mt-8 flex justify-center space-x-4" variants={item}>
             <button
-              onClick={() => router.push('/auth/sign-in')}
+              onClick={() => router.push('/chat')}
               className="inline-flex items-center justify-center rounded-md bg-black px-8 py-3 text-base font-medium text-white shadow-lg transition-transform transform hover:scale-105 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
             >
               Check My Eligibility
@@ -144,27 +145,14 @@ const App = () => {
           viewport={{ once: true, amount: 0.5 }}
           variants={container}
         >
-          <motion.h2 className="text-3xl md:text-4xl font-bold text-black" variants={item}>How It Works</motion.h2>
-          <motion.p className="mt-4 text-gray-600 max-w-xl mx-auto" variants={item}>
-            The process is quick, simple, and transparent.
+          <motion.h2 className="text-3xl md:text-4xl font-bold text-black" variants={item}>
+            How Our Agentic Search Works
+          </motion.h2>
+          <motion.p className="mt-4 text-gray-500 max-w-2xl mx-auto" variants={item}>
+            We use an advanced AI-powered process to get you the most accurate and comprehensive answers about your benefits eligibility.
           </motion.p>
-
-          <motion.div className="mt-12 grid gap-8 sm:grid-cols-3" variants={container}>
-            <motion.div className="flex flex-col items-center" variants={item}>
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-black text-white font-bold text-2xl shadow-lg">1</div>
-              <h3 className="mt-4 text-xl font-semibold text-black">Answer Questions</h3>
-              <p className="mt-2 text-gray-600 text-center">Tell us about your household size and income.</p>
-            </motion.div>
-            <motion.div className="flex flex-col items-center" variants={item}>
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-black text-white font-bold text-2xl shadow-lg">2</div>
-              <h3 className="mt-4 text-xl font-semibold text-black">Get Instant Results</h3>
-              <p className="mt-2 text-gray-600 text-center">Receive a preliminary eligibility result instantly.</p>
-            </motion.div>
-            <motion.div className="flex flex-col items-center" variants={item}>
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-black text-white font-bold text-2xl shadow-lg">3</div>
-              <h3 className="mt-4 text-xl font-semibold text-black">Find Resources</h3>
-              <p className="mt-2 text-gray-600 text-center">Access resources and links to officially apply for benefits.</p>
-            </motion.div>
+          <motion.div className="mt-12" variants={item}>
+            <AgenticSearchDiagram />
           </motion.div>
         </motion.div>
       </section>
@@ -184,7 +172,7 @@ const App = () => {
           </motion.p>
           <motion.div className="mt-8 flex justify-center" variants={item}>
             <button
-              onClick={() => router.push('/auth/sign-in')}
+              onClick={() => router.push('/chat')}
               className="inline-flex items-center justify-center rounded-md bg-white px-8 py-3 text-base font-medium text-black shadow-lg transition-transform transform hover:scale-105 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2"
             >
               Begin My Eligibility Check
