@@ -4,6 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export interface AnalysisResult {
   determination: "Eligible" | "Not Eligible" | "Need More Info";
@@ -66,66 +72,93 @@ export function ResultsDisplay({ result, isLoading }: ResultsDisplayProps) {
       <CardHeader>
         <CardTitle>5. Eligibility Analysis</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <Alert variant={getAlertVariant()}>
-          <div className="flex items-center gap-2">
-            {getStatusIcon()}
-            <AlertTitle className="text-lg font-bold">{result.determination}</AlertTitle>
-          </div>
-          <AlertDescription className="mt-2">{result.reasoning}</AlertDescription>
-        </Alert>
+      <CardContent>
+        <Accordion type="multiple" className="w-full">
 
-        <div>
-          <h4 className="font-semibold mb-2">Requirements Met</h4>
-          <div className="space-y-2">
-            {result.requirements.met.map((req, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500 mt-1 flex-shrink-0" />
-                <p className="text-sm">{req}</p>
+          <AccordionItem value="eligibility">
+            <AccordionTrigger>Eligibility</AccordionTrigger>
+            <AccordionContent>
+              <Alert variant={getAlertVariant()}>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon()}
+                  <AlertTitle className="text-lg font-bold">{result.determination}</AlertTitle>
+                </div>
+                <AlertDescription className="mt-2">{result.reasoning}</AlertDescription>
+              </Alert>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="met">
+            <AccordionTrigger>Requirements Met</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-2">
+                {result.requirements.met.map((req, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-1 flex-shrink-0" />
+                    <p className="text-sm">{req}</p>
+                  </div>
+                ))}
+                {result.requirements.met.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No requirements met based on provided information.
+                  </p>
+                )}
               </div>
-            ))}
-            {result.requirements.met.length === 0 && (
-              <p className="text-sm text-muted-foreground">No requirements met based on provided information.</p>
-            )}
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        <div>
-          <h4 className="font-semibold mb-2">Missing Requirements</h4>
-          <div className="space-y-2">
-            {result.requirements.missing.map((req, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <XCircle className="h-4 w-4 text-red-500 mt-1 flex-shrink-0" />
-                <p className="text-sm">{req}</p>
+          <AccordionItem value="missing">
+            <AccordionTrigger>Missing Requirements</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-2">
+                {result.requirements.missing.map((req, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <XCircle className="h-4 w-4 text-red-500 mt-1 flex-shrink-0" />
+                    <p className="text-sm">{req}</p>
+                  </div>
+                ))}
+                {result.requirements.missing.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    All requirements appear to be met.
+                  </p>
+                )}
               </div>
-            ))}
-             {result.requirements.missing.length === 0 && (
-              <p className="text-sm text-muted-foreground">All requirements appear to be met.</p>
-            )}
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
 
-        {result.nextSteps.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-2">Next Steps</h4>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              {result.nextSteps.map((step, i) => (
-                <li key={i}>{step}</li>
-              ))}
-            </ul>
-          </div>
-        )}
+          <AccordionItem value="nextSteps">
+            <AccordionTrigger>Next Steps</AccordionTrigger>
+            <AccordionContent>
+              {result.nextSteps.length > 0 ? (
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  {result.nextSteps.map((step, i) => (
+                    <li key={i}>{step}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No additional steps at this time.</p>
+              )}
+            </AccordionContent>
+          </AccordionItem>
 
-        {result.missingDocs.length > 0 && (
-          <div>
-            <h4 className="font-semibold mb-2">Missing Documents</h4>
-            <div className="flex flex-wrap gap-2">
-              {result.missingDocs.map((doc, i) => (
-                <Badge key={i} variant="outline">{doc}</Badge>
-              ))}
-            </div>
-          </div>
-        )}
+          <AccordionItem value="docs">
+            <AccordionTrigger>Missing Documents</AccordionTrigger>
+            <AccordionContent className="overflow-x-scroll">
+              {result.missingDocs.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {result.missingDocs.map((doc, i) => (
+                    <Badge key={i} variant="outline">
+                      {doc}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No missing documents.</p>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+        </Accordion>
       </CardContent>
     </Card>
   );
