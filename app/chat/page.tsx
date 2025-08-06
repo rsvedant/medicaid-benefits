@@ -122,6 +122,8 @@ export default function ChatPage() {
         body: JSON.stringify({ query: ragQuery }),
       });
 
+      console.log(ragResponse)
+
       if (!ragResponse.ok) {
         throw new Error("RAG search failed.");
       }
@@ -183,7 +185,7 @@ export default function ChatPage() {
 
       <SignedIn>
         <div className="container mx-auto p-4 md:p-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-center mb-2">Medicaid & SNAP Eligibility Analyzer</h1>
             <p className="text-center text-muted-foreground mb-8">
               Upload your documents and select a question to analyze your potential eligibility.
@@ -197,14 +199,21 @@ export default function ChatPage() {
 
             <ProgressTracker currentStep={currentStep} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
               <div className="space-y-8">
                 <FileUploader files={files} onFilesChange={handleFileChange} disabled={isLoading} />
-                <QuestionSelector onQuestionSelect={handleQuestionSelect} disabled={isLoading} />
               </div>
               <div className="space-y-8">
+                <QuestionSelector onQuestionSelect={handleQuestionSelect} disabled={isLoading} />
                 <DocumentProcessor extractedData={extractedData} isProcessing={currentStep === 3 && isLoading} />
-                <ResultsDisplay result={analysisResult} isLoading={isLoading && currentStep > 3} />
+                
+              </div>
+              <div>
+                <ResultsDisplay 
+                  result={analysisResult} 
+                  isLoading={isLoading && currentStep > 3} 
+                  // isLoading={true}
+                />
               </div>
             </div>
 
